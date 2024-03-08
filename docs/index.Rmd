@@ -1,0 +1,31 @@
+---
+title: "Project 2"
+author: "Max Johansson"
+date: "Spring of 2024"
+output: 
+  html_document:
+    theme: cosmo
+---
+
+# Introduction 
+
+## Subsection 
+
+```{r}
+x <- rnorm(200)
+y <- rnorm(200)
+df <- data.frame(x,y)
+
+
+lm_model <- lm(y ~ x, 
+               data = df)
+
+lm_model$coefficients
+
+
+```
+
+
+
+
+
