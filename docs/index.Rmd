@@ -7,25 +7,126 @@ output:
     theme: cosmo
 ---
 
-# Introduction 
+# 1. Introduction 
 
-## Subsection 
+In this brief project I analyze the ISLR2 data "OJ", containing customers that bought one of two brands of juice. 
 
-```{r}
-x <- rnorm(200)
-y <- rnorm(200)
-df <- data.frame(x,y)
+```{r, warning = FALSE, message=FALSE}
+# Load the packages 
+library(ISLR2) # For the OJ data set 
+library(dplyr) # For the select() function and %>%
+library(corrplot) # For the corrplot() function 
+library(RColorBrewer) # For the brewer.pal() function, color palette
+library(caret) # For the findCorrelation() function 
+library(factoextra) # For principal component analysis tools 
+library(psych) 
 
+# Load the data 
+df <- ISLR2::OJ
 
-lm_model <- lm(y ~ x, 
-               data = df)
+# Sampling mechanism
+sampling <- sample(c(TRUE, FALSE),
+                   nrow(df),
+                   replace = TRUE,
+                   prob = c(0.75, 0.25))
 
-lm_model$coefficients
+# Fitting data 75%, validation data 25%
+fit <- df[sampling,]
+val <- df[!sampling,]
+
+```
+
+# 2. Data Exploration 
+
+## 2.1. Overview and Cleaning 
+The data contains 18 variables, and I consider the purchase variable the variable of main interest. This variable is one of two factors in the data, the other being store7. Some variables are numeric, but could more appropriately be turned into factors as well, such as storeID and the dummy variables SpecialCH, SpecialMM and STORE. After changing them to factors, I have 6 factors and 12 numeric variables. For the numeric variables, I do not want too much correlation for the regression. I decide to log the variables to try and reduce the high correlations. 
+```{r, warning =FALSE, message=FALSE}
+# The dimensions of the data 
+cat("The dimensions of the data are:", dim(df)[1], 
+    "rows and", dim(df)[2], "columns", "\n")
+
+# The class of each variable
+sapply(df, class)
+
+# A for loop to transform some variables into factors
+var_list <- c("StoreID", "SpecialCH", "SpecialMM", "STORE")
+
+for(i in var_list){
+  df[[i]] <- as.factor(df[[i]])
+}
+
+# If statement that checks the presence of NA's. 
+if(any(is.na(df))){
+  print("These observations are NA:")
+  print(df[is.na(df)])
+} else {
+  print("There are no NA's")
+}
+
+# Numeric variables subsetted
+num_fit <- fit %>% select(where(is.numeric))
+
+# Correlation matrix 
+corr_mat <- cor(num_fit) 
+
+# Heatmap 
+heatmap(corr_mat, 
+        symm = TRUE,
+        main= "Correlation Matrix")
 
 
 ```
 
+## 2.2. Principal Component Analysis 
+```{r, warning=FALSE, message=FALSE}
+# Principal components 
+pca_results <- princomp(corr_mat)
 
+# Summary 
+summary(pca_results)
+
+# Loadings 
+pca_results$loadings[, 1:4]
+
+# scree plot 
+fviz_eig(pca_results, addlabels = TRUE)
+
+#  
+pca
+```
+
+
+# 3. Modelling 
+```{r, warning=FALSE, message=FALSE}
+
+# Logistic model 
+logistic_model <- glm(Purchase ~ ., 
+                      data = fit,
+                      family = binomial)
+# The output 
+summary(logistic_model)
+
+# Anova test 
+anova(logistic_model, test = "Chisq")
+```
+
+# 4. Predictions 
+```{r, warning = FALSE, message=FALSE}
+# predicted probabilities 
+logistic_prob <- predict(object = logistic_model, newdata = val, type ="response")
+
+# transform the probabilities into predictions 
+logistic_pred <- ifelse(logistic_prob > 0.5, "MM", "CH")
+
+# The accuracy of the predictions 
+cat("The accuracy of the logistic model predictions is:", mean(logistic_pred == val$Purchase), "\n")
+
+mode_purchase <- 100*round(table(fit$Purchase)[1] /(table(fit$Purchase)[1] + table(fit$Purchase)[2]), digits = 2)
+cat("The mode of the Purchase training data makes up", mode_purchase, "% of the training data", "\n")
+
+```
+
+# 5. Conclusions
 
 
 
