@@ -131,7 +131,7 @@ cat("The mode of the Purchase training data makes up", mode_purchase, "% of the 
 # 6. Packages 
 ISLR2. URL: https://cran.r-project.org/package=ISLR2
 dplyr. URL: https://cran.r-project.org/package=dplyr
-ggcorrplot. URL: https://cran.r-project.org/package=ggcorrplot
+corrplot. URL: https://cran.r-project.org/package=corrplot
 RColorBrewer. URL: https://cran.r-project.org/package=RColorBrewer
 caret. URL: https://cran.r-project.org/package=caret
 factoextra. URL: https://cran.r-project.org/package=factoextra
