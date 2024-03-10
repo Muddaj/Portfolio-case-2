@@ -1,11 +1,11 @@
 ---
 title: "Project 2"
-subtitle: "Principal Component Analysis and Logistic Regression"
+subtitle: "Logistic Lasso Regression - Predicting the Juice Brand Purchased"
 author: "Max Johansson"
 date: "Spring of 2024"
 output: 
   html_document:
-    theme: cosmo
+    theme: united
 ---
 
 # 1. Introduction 
@@ -19,6 +19,7 @@ library(dplyr) # For the select() function and %>%
 library(corrplot) # For the corrplot() function 
 library(RColorBrewer) # For the brewer.pal() function, color palette
 library(gplots) # For the heatmap.2() function 
+library(glmnet) # For the glmnet() function 
 
 # Load the data 
 df <- ISLR2::OJ
@@ -33,6 +34,8 @@ if(any(is.na(df))){
 } else {
   print("There are no NA's")
 }
+
+df$Purchase <- ifelse(df$Purchase == "MM", 1, 0)
 
 ```
 
@@ -52,12 +55,16 @@ sapply(df, class)
 I transform them into factors, I have 6 factors and 12 numeric variables. For the numeric variables, I produce a heatmap to get an idea of the correlations. 
 ```{r, warning =FALSE, message=FALSE}
 # A for loop to transform some variables into factors
-var_list <- c("StoreID", "SpecialCH", "SpecialMM", "STORE")
+
+# "StoreID", "SpecialCH", "SpecialMM", "STORE"
+var_list <- c("Purchase")
 
 for(i in var_list){
   df[[i]] <- as.factor(df[[i]])
 }
 
+# confirm the changes
+sapply(df, class)
 
 ```
 
@@ -76,11 +83,10 @@ gplots::heatmap.2(corr_mat,
         main = "Correlation Matrix")
 ```
 
-
-
 # 3. Modelling 
 
-In one model, I use the untransformed variables. In another, I use the variables without high correlations and the interaction variables, excluding the highly correlated variables on their own. 
+Since the outcome variable is binary, I use logistic regression. However, the high correlation among many variables is something I fear will affect the fitted model. To compare, I also perform a logistic Lasso regression. 
+
 ```{r, warning = FALSE, message=FALSE}
 
 # Sampling mechanism
@@ -99,16 +105,49 @@ logistic_model <- stats::glm(Purchase ~ .,
                       data = fit,
                       family = binomial)
 
+summary(logistic_model)
+
+```
+
+I now fit the lasso model.
+```{r}
+# The x must be a model.matrix and the y a numeric vector 
+x_fit <- model.matrix(Purchase ~., fit)[,-1]
+y_fit <- fit$Purchase == 1
+
+x_val <- model.matrix(Purchase ~., val)[,-1]
+y_val <- val$Purchase == 1
+
+# cross validation for the best lambda value 
+cv.lambda <- glmnet::cv.glmnet(x_fit, y_fit, alpha = 1, family = "binomial")
+
+# plot above 
+plot(cv.lambda)
+
+# fit the lasso model, use the lambda associated with the smallest cv error 
+cv.lambda$lambda.min
+lasso_model <- glmnet::glmnet(x_fit,y_fit, family = "binomial", alpha = 1, lambda = cv.lambda$lambda.min)
+
+# coefficients of the model 
+coef(lasso_model)
+
+# predictions 
+lasso_prob <- predict.glmnet(lasso_model, newx = x_val, type = "response")
+
+lasso_pred <- ifelse(lasso_prob > 0.5, "TRUE", "FALSE")
+
+mean(lasso_pred == y_val)
 
 ```
 
 I predict the probabilities of the outcomes, then transform them into predictions. The "MM" brand is treated as the "success" in this case, so if a predicted probability is above 50% then the prediction is "MM". The most common outcome in the fitting data is "CH", so I estimate the accuracy of the mode as a predictor as a benchmark. The logistic model performs better than the mode as a predictor. 
+
 ```{r, warning = FALSE, message=FALSE}
 # predicted probabilities 
 logistic_prob <- stats::predict(object = logistic_model, newdata = val, type ="response")
 
 # transform the probabilities into predictions 
-logistic_pred <- ifelse(logistic_prob > 0.5, "MM", "CH")
+logistic_pred <- ifelse(logistic_prob > 0.5, "1", "0")
 
 # The accuracy of the predictions 
 cat("The accuracy of the logistic model predictions is:", mean(logistic_pred == val$Purchase), "\n")
@@ -116,7 +155,7 @@ cat("The accuracy of the logistic model predictions is:", mean(logistic_pred == 
 # Calculate the mode accuracy 
 table(fit$Purchase)
 
-mode_accuracy <- 100*round(mean(val$Purchase == "CH"), 2)
+mode_accuracy <- 100*round(mean(val$Purchase == "0"), 2)
 
 # Print it 
 cat("The mode 'CH' as a predictor has a", mode_accuracy, "% accuracy", "\n")
@@ -129,3 +168,5 @@ dplyr: https://cran.r-project.org/package=dplyr
 corrplot: https://cran.r-project.org/package=corrplot
 RColorBrewer: https://cran.r-project.org/package=RColorBrewer
 gplots: https://cran.r-project.org/package=gplots
+glmnet: https://cran.r-project.org/package=glmnet
+
