@@ -469,6 +469,12 @@ val &lt;- df[!sampling,]
 logistic_model &lt;- stats::glm(Purchase ~ ., 
                       data = fit,
                       family = binomial)</code></pre>
+<p>I predict the probabilities of the outcomes, then transform them into
+predictions. The “MM” brand is treated as the “success” in this case, so
+if a predicted probability is above 50% then the prediction is “MM”. The
+most common outcome in the fitting data is “CH”, so I estimate the
+accuracy of the mode as a predictor as a benchmark. The logistic model
+performs better than the mode as a predictor.</p>
 <pre class="r"><code># predicted probabilities 
 logistic_prob &lt;- stats::predict(object = logistic_model, newdata = val, type =&quot;response&quot;)
 
@@ -478,18 +484,19 @@ logistic_pred &lt;- ifelse(logistic_prob &gt; 0.5, &quot;MM&quot;, &quot;CH&quot
 # The accuracy of the predictions 
 cat(&quot;The accuracy of the logistic model predictions is:&quot;, mean(logistic_pred == val$Purchase), &quot;\n&quot;)</code></pre>
 <pre><code>## The accuracy of the logistic model predictions is: 0.8095238</code></pre>
-<pre class="r"><code># Calculate the mode proportion 
-mode_purchase &lt;- 100*round(table(fit$Purchase)[1] /(table(fit$Purchase)[1] + table(fit$Purchase)[2]), digits = 2)
+<pre class="r"><code># Calculate the mode accuracy 
+table(fit$Purchase)</code></pre>
+<pre><code>## 
+##  CH  MM 
+## 478 319</code></pre>
+<pre class="r"><code>mode_accuracy &lt;- 100*round(mean(val$Purchase == &quot;CH&quot;), 2)
 
 # Print it 
-cat(&quot;The mode of the Purchase training data makes up&quot;, mode_purchase, &quot;% of the training data&quot;, &quot;\n&quot;)</code></pre>
-<pre><code>## The mode of the Purchase training data makes up 60 % of the training data</code></pre>
-</div>
-<div id="conclusions" class="section level1">
-<h1>5. Conclusions</h1>
+cat(&quot;The mode &#39;CH&#39; as a predictor has a&quot;, mode_accuracy, &quot;% accuracy&quot;, &quot;\n&quot;)</code></pre>
+<pre><code>## The mode &#39;CH&#39; as a predictor has a 64 % accuracy</code></pre>
 </div>
 <div id="packages" class="section level1">
-<h1>6. Packages</h1>
+<h1>5. Packages</h1>
 <p>ISLR2: <a href="https://cran.r-project.org/package=ISLR2" class="uri">https://cran.r-project.org/package=ISLR2</a> dplyr: <a href="https://cran.r-project.org/package=dplyr" class="uri">https://cran.r-project.org/package=dplyr</a> corrplot: <a href="https://cran.r-project.org/package=corrplot" class="uri">https://cran.r-project.org/package=corrplot</a>
 RColorBrewer: <a href="https://cran.r-project.org/package=RColorBrewer" class="uri">https://cran.r-project.org/package=RColorBrewer</a> gplots:
 <a href="https://cran.r-project.org/package=gplots" class="uri">https://cran.r-project.org/package=gplots</a></p>

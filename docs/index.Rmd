@@ -102,6 +102,7 @@ logistic_model <- stats::glm(Purchase ~ .,
 
 ```
 
+I predict the probabilities of the outcomes, then transform them into predictions. The "MM" brand is treated as the "success" in this case, so if a predicted probability is above 50% then the prediction is "MM". The most common outcome in the fitting data is "CH", so I estimate the accuracy of the mode as a predictor as a benchmark. The logistic model performs better than the mode as a predictor. 
 ```{r, warning = FALSE, message=FALSE}
 # predicted probabilities 
 logistic_prob <- stats::predict(object = logistic_model, newdata = val, type ="response")
@@ -112,11 +113,13 @@ logistic_pred <- ifelse(logistic_prob > 0.5, "MM", "CH")
 # The accuracy of the predictions 
 cat("The accuracy of the logistic model predictions is:", mean(logistic_pred == val$Purchase), "\n")
 
-# Calculate the mode proportion 
-mode_purchase <- 100*round(table(fit$Purchase)[1] /(table(fit$Purchase)[1] + table(fit$Purchase)[2]), digits = 2)
+# Calculate the mode accuracy 
+table(fit$Purchase)
+
+mode_accuracy <- 100*round(mean(val$Purchase == "CH"), 2)
 
 # Print it 
-cat("The mode of the Purchase training data makes up", mode_purchase, "% of the training data", "\n")
+cat("The mode 'CH' as a predictor has a", mode_accuracy, "% accuracy", "\n")
 
 ```
 
