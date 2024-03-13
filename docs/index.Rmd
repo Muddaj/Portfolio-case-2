@@ -5,13 +5,21 @@ author: "Max Johansson"
 date: "Spring of 2024"
 output: 
   html_document:
-    theme: united
+    fig_caption: yes
+    theme: "united"
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
 ---
 
 # 1. Introduction 
 
 In this brief project I analyze the ISLR2 data "OJ", containing customers that bought one of two brands of juice. 
 
+# 2. Data Exploration 
+
+## 2.1. 
+To begin with, I load the packages and data into the environment. I set the seed so that the results are replicable. 
 ```{r, warning = FALSE, message=FALSE}
 # Load the packages 
 library(ISLR2) # For the OJ data set 
@@ -27,6 +35,11 @@ df <- ISLR2::OJ
 # set seed 
 set.seed(123456789)
 
+```
+
+By using an if-else statement I find that there are no NA's. The data contains 18 variables, and I consider the purchase variable the variable of main interest. It only takes two values, and I transform it to take either 1 or 0, 1 for the brand "MM" and 0 for the "CH" brand. 
+```{r, warning = FALSE, message=FALSE}
+
 # If statement that checks the presence of NA's. 
 if(any(is.na(df))){
   print("These observations are NA:")
@@ -35,29 +48,27 @@ if(any(is.na(df))){
   print("There are no NA's")
 }
 
+# Recode the outcome variable: 1 or 0. 
 df$Purchase <- ifelse(df$Purchase == "MM", 1, 0)
 
-```
-
-# 2. Data Exploration 
-
-## 2.1. Overview and Cleaning 
-The data contains 18 variables, and I consider the purchase variable the variable of main interest. This variable is one of two factors in the data, the other being store7. Some variables are numeric, but could more appropriately be turned into factors as well, such as storeID and the dummy variables SpecialCH, SpecialMM and STORE. 
-```{r}
 # The dimensions of the data 
-cat("The dimensions of the data are:", base::dim(df)[1], 
-    "rows and", base::dim(df)[2], "columns", "\n")
+cat("The dimensions of the data are:", 
+    dim(df)[1], 
+    "rows and", 
+    dim(df)[2], 
+    "columns", "\n")
 
 # The class of each variable
 sapply(df, class)
+
 ```
 
-I transform them into factors, I have 6 factors and 12 numeric variables. For the numeric variables, I produce a heatmap to get an idea of the correlations. 
+For the numeric variables, I produce a heatmap to get an idea of the correlations. 
 ```{r, warning =FALSE, message=FALSE}
+
 # A for loop to transform some variables into factors
 
-# "StoreID", "SpecialCH", "SpecialMM", "STORE"
-var_list <- c("Purchase")
+var_list <- c("Purchase", "StoreID", "SpecialCH", "SpecialMM", "STORE")
 
 for(i in var_list){
   df[[i]] <- as.factor(df[[i]])
