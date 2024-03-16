@@ -19,46 +19,47 @@ In this brief project I analyze the ISLR2 data "OJ", containing data on customer
 # 2. Data Exploration 
 To begin with, I load the packages and data into the environment. I set the seed so that the results are replicable. 
 ```{r, warning = FALSE, message=FALSE}
-# Load the packages 
-library(ISLR2) # For the OJ data set 
+
+# Load the packages:
+library(ISLR2) # For the OJ data set
 library(dplyr) # For the select() function and %>%
-library(corrplot) # For the corrplot() function 
+library(corrplot) # For the corrplot() function
 library(RColorBrewer) # For the brewer.pal() function, color palette
-library(glmnet) # For the glmnet() function 
+library(glmnet) # For the glmnet() function
 library(stargazer) # To compare summary output using the stargazer() function
 
-# Load the data 
+# Load the data:
 df <- ISLR2::OJ
 
-# set seed 
+# Set the seed:
 set.seed(123456789)
 
 ```
 
-I find that there are no NA's. The data contains 18 variables, and I consider the purchase variable the variable of main interest. It only takes two values, and I transform it to take either 1 or 0: 1 for the brand "MM" and 0 for the "CH" brand. 
+I find that there are no NA's. The data contains 18 variables, and I consider the purchase variable the variable of main interest. It only takes two values, and I transform it to take either 1 or 0: 1 for the brand "MM" and 0 for the "CH" brand. Had 
 ```{r, warning = FALSE, message=FALSE}
 
-# Check the presence of NA's. 
+# Check the presence of NA's:
 any_na <- any(is.na(df))
 
-# Recode the outcome variable: 1 or 0. 
+# Recode the outcome variable: 1 or 0:
 df$Purchase <- ifelse(df$Purchase == "MM", 1, 0)
 
-# The dimensions of the data 
+# The dimensions of the data:
 dimensions <- dim(df)
 
-# The class of each variable
+# The class of each variable:
 classes <- sapply(df, class)
 
 # A for loop to transform some variables into factors
+fact_df<- df[, c(1, 3, 8, 9, 14, 18)]
+var_list <- colnames(fact_df)
 
-var_list <- c("Purchase")
-
-for(i in var_list){
+for (i in var_list) {
   df[[i]] <- as.factor(df[[i]])
 }
 
-# confirm the changes
+# I confirm the changes:
 new_classes <- sapply(df, class)
 
 
@@ -68,7 +69,7 @@ For the numeric variables, I produce a correlation plot to get an idea of the co
 ```{r, warning = FALSE, message = FALSE}
 
 # Numeric subset:
-num_df <- df[,-c(1, 3, 8, 9, 14, 18)]
+num_df <- df[, -c(1, 3, 8, 9, 14, 18)]
 
 # Correlation matrix, the purchase variable:
 corr_mat <- cor(num_df)
@@ -77,19 +78,20 @@ corr_mat <- cor(num_df)
 my_palette <- RColorBrewer::brewer.pal(8, "Spectral")
 
 # Plot the correlations:
-corrplot::corrplot(corr_mat,
-                   method = "number",
-                   type = "lower",
-                   diag = FALSE,
-                   col = my_palette,
-                   title = "Correlation Plot",
-                   mar = c(1,1,1,1),
-                   bg = "black",
-                   tl.cex = 0.7,
-                   tl.col = "blue3",
-                   tl.srt = 45,
-                   number.cex = 0.55
-                   )
+corrplot::corrplot(
+  corr_mat,
+  method = "number",
+  type = "lower",
+  diag = FALSE,
+  col = my_palette,
+  title = "Correlation Plot",
+  mar = c(1, 1, 1, 1),
+  bg = "black",
+  tl.cex = 0.7,
+  tl.col = "black",
+  tl.srt = 45,
+  number.cex = 0.50
+)
 
 ```
 
@@ -98,32 +100,32 @@ corrplot::corrplot(corr_mat,
 Since the outcome variable is binary, I use logistic regression. However, the high correlation among many variables is something I fear will affect the fitted model. To compare, I also perform a logistic Lasso regression. 
 
 ## 3.1. Logistic Regression
-I split the data into a fitting set and a validation set. As I summarize the model fitted on all variables, 9 variable coefficients are set to 0 as a consequence of singularities, indicating that multicollinearity is an issue here. Here I decide to handle the highly correlated variables in the data by separating them into different models. 
+I split the data into a fitting set and a validation set. As I summarize the model fitted on all variables, 9 variable coefficients are set to 0 as a consequence of singularities, indicating that multicollinearity is an issue here. Here I decide to handle the highly correlated variables in the data by separating them into different models.
+
 ```{r, warning = FALSE, message=FALSE}
 
-# Sampling mechanism
+# Sampling mechanism:
 sampling <- sample(c(TRUE, FALSE),
                    nrow(df),
                    replace = TRUE,
                    prob = c(0.75, 0.25))
 
-# Fitting data 75%, validation data 25%
-fit <- df[sampling,]
+# Fitting data 75%, validation data 25%:
+fit <- df[sampling, ]
 
-val <- df[!sampling,]
+val <- df[!sampling, ]
 
 # Logistic models:
 
 logistic_model1 <- glm(Purchase ~ .,
-                       data = fit[,-c(11:13, 15:17)],
+                       data = fit[, -c(11:13, 15:17)],
                        family = binomial)
 
 logistic_model2 <- glm(Purchase ~ .,
-                       data = fit[,-c(5:7,13)],
-                       family = binomial) 
+                       data = fit[, -c(5:7, 13)],
+                       family = binomial)
 
-
-stargazer::stargazer(logistic_model1, 
+stargazer::stargazer(logistic_model1,
                      logistic_model2,
                      type = "text")
 
@@ -133,76 +135,95 @@ I predict the probabilities of the outcomes, then transform them into prediction
 
 ```{r, warning = FALSE, message=FALSE}
 
+
 # I initialize an empty lists:
 logistic_probs <- list()
 logistic_preds <- list()
 
 # A for loop, looping over the models:
-for(i in 1:2){
-  if(i == 1){
-    logistic_probs[[i]] <- predict(logistic_model1, 
-                                   newdata = val, 
+for (i in 1:2) {
+  if (i == 1) {
+    logistic_probs[[i]] <- predict(logistic_model1,
+                                   newdata = val,
                                    type = "response")
-    logistic_preds[[i]] <- ifelse(logistic_probs[[i]] > 0.5, 1, 0)}
+    logistic_preds[[i]] <- ifelse(logistic_probs[[i]] > 0.5, 1, 0)
+  }
   else {
     logistic_probs[[i]] <- predict(logistic_model2,
                                    newdata = val,
                                    type = "response")
     logistic_preds[[i]] <- ifelse(logistic_probs[[i]] > 0.5, 1, 0)
-
+    
   }
 }
 
-
 # Model 1 accuracy:
-cat(100*mean(logistic_preds[[1]] == val$Purchase), "% accuracy", "\n")
+cat(100 * mean(logistic_preds[[1]] == val$Purchase), 
+    "% accuracy", "\n")
 
 # Model 2 accuracy:
-cat(100*mean(logistic_preds[[2]] == val$Purchase), "% accuracy", "\n")
+cat(100 * mean(logistic_preds[[2]] == val$Purchase), 
+    "% accuracy", "\n")
 
 # Mode accuracy
-cat(100*mean(val$Purchase == "0"), "% accuracy", "\n")
+cat(100 * mean(val$Purchase == "0"), 
+    "% accuracy", "\n")
 
 ```
 
 ## 3.2. Logistic Lasso Regression
 
 In the following code I fit the lasso model and predict the juice brand of the consumers in the validation data set. 
-```{r}
-# The x must be a model.matrix and the y a numeric vector 
-x_fit <- model.matrix(Purchase ~., fit)[,-1]
+```{r, warning=FALSE, message=FALSE}
+
+
+# The x must be a model.matrix and the y a numeric vector:
+x_fit <- model.matrix(Purchase ~ ., fit)[, -1]
 y_fit <- fit$Purchase == 1
 
-x_val <- model.matrix(Purchase ~., val)[,-1]
+x_val <- model.matrix(Purchase ~ ., val)[, -1]
 y_val <- val$Purchase == 1
 
-# cross validation for the best lambda value: 
-cv.lambda <- glmnet::cv.glmnet(x_fit, y_fit, alpha = 1, family = "binomial")
+# Cross validation for the best lambda value:
+cv.lambda <-
+  glmnet::cv.glmnet(x_fit, 
+                    y_fit, 
+                    alpha = 1, 
+                    family = "binomial")
 
-# fit the lasso model, use the lambda associated with the smallest cv error: 
-min_lambda <- cv.lambda$lambda.min
-lasso_model <- glmnet::glmnet(x_fit,y_fit, 
-                              family = "binomial", 
-                              alpha = 1, 
-                              lambda = min_lambda)
+# Fit the lasso model:
+lasso_model <- 
+  glmnet::glmnet(x_fit,
+                 y_fit,
+                 family = "binomial",
+                 alpha = 1,
+                 lambda = cv.lambda$lambda.min)
 
-# coefficients of the model: 
+# Coefficients of the model:
 lasso_coef <- coef(lasso_model)
 
-# predictions: 
-lasso_prob <- predict.glmnet(lasso_model, newx = x_val, type = "response")
+# Predictions:
+lasso_prob <- predict.glmnet(lasso_model, 
+                 newx = x_val, 
+                 type = "response")
 
-lasso_pred <- ifelse(lasso_prob > 0.5, "TRUE", "FALSE")
+lasso_pred <- ifelse(lasso_prob > 0.5, 
+                     "TRUE", 
+                     "FALSE")
 
 ```
 
 From the output it is clear that a number of variable coefficients have been reduced to 0. The accuracy is about the same as the logistic models. 
 ```{r, warning=FALSE, message=FALSE}
-# Print the results:
+
+# Print the Coefficients:
 print(lasso_coef)
+
+# Print the Accuracy:
 cat(100 * mean(lasso_pred == y_val),
     "% accuracy",
     "\n")
+
 ```
 
 # 5. Findings 
